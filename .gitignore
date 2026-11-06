@@ -1,0 +1,16 @@
+# Maven build output
+target/
+
+# Compiled Java files
+*.class
+
+# Generated message storage
+messages.json
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+
+# macOS files
+.DS_Store
