@@ -3,6 +3,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -174,12 +178,44 @@ public class MessageTest {
 
         String json = Files.readString(path, StandardCharsets.UTF_8);
 
-        assertTrue(json.startsWith("["));
-        assertTrue(json.trim().endsWith("]"));
-        assertTrue(json.contains("0012345678"));
-        assertTrue(json.contains("0098765432"));
-        assertTrue(json.contains("Hello Mike"));
-        assertTrue(json.contains("Good morning John"));
+        // Parse the JSON file using Gson.
+        JsonArray messages = JsonParser.parseString(json).getAsJsonArray();
+
+        // Verify that both messages were stored.
+        assertEquals(2, messages.size());
+
+        JsonObject firstStoredMessage = messages.get(0).getAsJsonObject();
+        JsonObject secondStoredMessage = messages.get(1).getAsJsonObject();
+
+        assertEquals(
+                "0012345678",
+                firstStoredMessage.get("messageID").getAsString()
+        );
+
+        assertEquals(
+                "Hello Mike",
+                firstStoredMessage.get("message").getAsString()
+        );
+
+        assertEquals(
+                "0098765432",
+                secondStoredMessage.get("messageID").getAsString()
+        );
+
+        assertEquals(
+                "Good morning John",
+                secondStoredMessage.get("message").getAsString()
+        );
+
+        assertEquals(
+                "stored",
+                firstStoredMessage.get("status").getAsString()
+        );
+
+        assertEquals(
+                "stored",
+                secondStoredMessage.get("status").getAsString()
+        );
     }
 
     @Test
@@ -197,8 +233,16 @@ public class MessageTest {
 
         String json = Files.readString(path, StandardCharsets.UTF_8);
 
-        assertTrue(json.contains("Hello \\\"Mike\\\""));
-        assertTrue(json.contains("\\n"));
+        // Confirm that the file contains valid JSON.
+        JsonArray messages = JsonParser.parseString(json).getAsJsonArray();
+
+        String storedMessage = messages.get(0)
+                .getAsJsonObject()
+                .get("message")
+                .getAsString();
+
+        // Confirm that the original message is preserved.
+        assertEquals(text, storedMessage);
     }
 
     @Test
