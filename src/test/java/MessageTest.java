@@ -3,6 +3,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -148,6 +154,51 @@ public class MessageTest {
         );
 
         assertEquals("stored", message.getStatus());
+    }
+
+    @Test
+    void testMultipleMessagesAreStoredInJson() throws IOException {
+        Path path = Paths.get("messages.json");
+        Files.deleteIfExists(path);
+
+        Message firstMessage = new Message(
+                "0012345678", 0, "+27718693002", "Hello Mike"
+        );
+
+        Message secondMessage = new Message(
+                "0098765432", 1, "+27838968976", "Good morning John"
+        );
+
+        firstMessage.SentMessage("Store");
+        secondMessage.SentMessage("Store");
+
+        String json = Files.readString(path, StandardCharsets.UTF_8);
+
+        assertTrue(json.startsWith("["));
+        assertTrue(json.trim().endsWith("]"));
+        assertTrue(json.contains("0012345678"));
+        assertTrue(json.contains("0098765432"));
+        assertTrue(json.contains("Hello Mike"));
+        assertTrue(json.contains("Good morning John"));
+    }
+
+    @Test
+    void testJsonStorageEscapesSpecialCharacters() throws IOException {
+        Path path = Paths.get("messages.json");
+        Files.deleteIfExists(path);
+
+        String text = "Hello \"Mike\"\nHow are you?";
+
+        Message message = new Message(
+                "0012345678", 0, "+27718693002", text
+        );
+
+        message.SentMessage("Store");
+
+        String json = Files.readString(path, StandardCharsets.UTF_8);
+
+        assertTrue(json.contains("Hello \\\"Mike\\\""));
+        assertTrue(json.contains("\\n"));
     }
 
     @Test
