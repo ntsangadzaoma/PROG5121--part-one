@@ -149,4 +149,3 @@ GitHub Actions is configured to execute automated tests when changes are pushed 
 
 4. Apache Maven — Documentation:  
    https://maven.apache.org/guides/
-
