@@ -70,13 +70,15 @@ public class Message {
         return messageID != null && messageID.matches("\\d{10}");
     }
 
-    /** Validates the recipient international number. */
+    /**
+     * Validates the recipient's South African international cell number.
+     */
     public String checkRecipientCell() {
-        if (recipient == null || !recipient.matches("^\\+\\d{1,3}\\d{1,10}$")) {
-            return "Recipient cell number is incorrectly formatted.";
+        if (recipient != null && recipient.matches("^\\+27\\d{9}$")) {
+            return "Cell phone number successfully captured.";
         }
 
-        return "Recipient successfully captured.";
+        return "Cell phone number is incorrectly formatted or does not contain an international code. Please correct the number and try again.";
     }
 
     /** Validates the 250-character message limit. */
