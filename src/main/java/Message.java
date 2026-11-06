@@ -1,3 +1,4 @@
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -12,6 +13,7 @@ import java.util.concurrent.ThreadLocalRandom;
  * Represents a QuickChat message for Part 2.
  */
 public class Message {
+
     private static final List<Message> SENT_MESSAGES = new ArrayList<>();
     private static int totalMessagesSent = 0;
     private static final String JSON_FILE = "messages.json";
@@ -43,25 +45,29 @@ public class Message {
         this(messageID, messageNumber, recipient, message);
     }
 
+    /** Generates a random 10-digit message ID. */
     private static String generateMessageID() {
-        long value = ThreadLocalRandom.current().nextLong(1_000_000_000L, 10_000_000_000L);
+        long value = ThreadLocalRandom.current().nextLong(
+                1_000_000_000L,
+                10_000_000_000L
+        );
         return String.valueOf(value);
     }
 
-    /** Ensures the message ID is no more than 10 characters long. */
+    /** Ensures the message ID contains exactly 10 numeric digits. */
     public Boolean checkMessageID() {
-        return messageID != null && messageID.length() <= 10;
+        return messageID != null && messageID.matches("\\d{10}");
     }
 
     /**
-     * Ensures the recipient has an international code and no more than ten
-     * national-number digits. This accommodates the POE test number such as
-     * +27718693002 (+27 followed by nine digits).
+     * Ensures the recipient has an international code and no more than
+     * ten national-number digits.
      */
     public String checkRecipientCell() {
         if (recipient == null || !recipient.matches("^\\+\\d{1,3}\\d{1,10}$")) {
             return "Recipient cell number is incorrectly formatted.";
         }
+
         return "Recipient successfully captured.";
     }
 
@@ -70,33 +76,43 @@ public class Message {
         if (message != null && message.length() <= 250) {
             return "Message ready to send.";
         }
+
         int length = message == null ? 0 : message.length();
         int excess = Math.max(0, length - 250);
+
         return "Message exceeds 250 characters by " + excess
                 + "; please reduce the size.";
     }
 
     /** Creates the required message hash. */
     public String createMessageHash() {
-        String idPart = messageID == null ? "" : messageID.substring(0, Math.min(2, messageID.length()));
+        String idPart = messageID == null
+                ? ""
+                : messageID.substring(0, Math.min(2, messageID.length()));
+
         String firstWord = "";
         String lastWord = "";
 
         if (message != null) {
             String cleaned = message.trim();
+
             if (!cleaned.isEmpty()) {
                 String[] words = cleaned.split("\\s+");
+
                 firstWord = words[0].replaceAll("[^A-Za-z0-9]", "");
                 lastWord = words[words.length - 1].replaceAll("[^A-Za-z0-9]", "");
             }
         }
 
-        messageHash = (idPart + ":" + messageNumber + ":" + firstWord + lastWord).toUpperCase();
+        messageHash = (idPart + ":" + messageNumber + ":"
+                + firstWord + lastWord).toUpperCase();
+
         return messageHash;
     }
 
     /**
-     * Records the selected action. The returned strings follow the POE wording.
+     * Records the selected action.
+     * The returned strings follow the POE wording.
      */
     public String SentMessage(String choice) {
         if (choice == null) {
@@ -104,22 +120,28 @@ public class Message {
         }
 
         String selected = choice.trim().toLowerCase();
+
         switch (selected) {
             case "send":
                 status = "sent";
+
                 if (!SENT_MESSAGES.contains(this)) {
                     SENT_MESSAGES.add(this);
                     totalMessagesSent++;
                 }
+
                 return "Message successfully sent.";
+
             case "disregard":
             case "discard":
                 status = "disregarded";
                 return "Press 0 to delete the message.";
+
             case "store":
                 status = "stored";
                 storeMessage();
                 return "Message successfully stored.";
+
             default:
                 return "Invalid choice.";
         }
@@ -128,7 +150,9 @@ public class Message {
     /** Interactive version used by the console application. */
     public String SentMessage() {
         Scanner scanner = new Scanner(System.in);
+
         System.out.print("Choose Send, Disregard or Store: ");
+
         return SentMessage(scanner.nextLine());
     }
 
@@ -139,13 +163,27 @@ public class Message {
         }
 
         StringBuilder output = new StringBuilder();
+
         for (Message sent : SENT_MESSAGES) {
-            output.append("Message ID: ").append(sent.messageID).append(System.lineSeparator());
-            output.append("Message Hash: ").append(sent.messageHash).append(System.lineSeparator());
-            output.append("Recipient: ").append(sent.recipient).append(System.lineSeparator());
-            output.append("Message: ").append(sent.message).append(System.lineSeparator());
+            output.append("Message ID: ")
+                    .append(sent.messageID)
+                    .append(System.lineSeparator());
+
+            output.append("Message Hash: ")
+                    .append(sent.messageHash)
+                    .append(System.lineSeparator());
+
+            output.append("Recipient: ")
+                    .append(sent.recipient)
+                    .append(System.lineSeparator());
+
+            output.append("Message: ")
+                    .append(sent.message)
+                    .append(System.lineSeparator());
+
             output.append(System.lineSeparator());
         }
+
         return output.toString().trim();
     }
 
@@ -157,6 +195,7 @@ public class Message {
     /** Stores this message in a JSON array in messages.json. */
     public void storeMessage() {
         Path path = Paths.get(JSON_FILE);
+
         String object = "  {\n"
                 + "    \"messageID\": \"" + escapeJson(messageID) + "\",\n"
                 + "    \"messageNumber\": " + messageNumber + ",\n"
@@ -168,28 +207,45 @@ public class Message {
 
         try {
             String json;
-            if (!Files.exists(path) || Files.readString(path, StandardCharsets.UTF_8).trim().isEmpty()) {
+
+            if (!Files.exists(path)
+                    || Files.readString(path, StandardCharsets.UTF_8).trim().isEmpty()) {
+
                 json = "[\n" + object + "\n]\n";
+
             } else {
                 json = Files.readString(path, StandardCharsets.UTF_8).trim();
+
                 if (json.equals("[]")) {
                     json = "[\n" + object + "\n]\n";
+
                 } else if (json.endsWith("]")) {
-                    json = json.substring(0, json.length() - 1).trim() + ",\n" + object + "\n]\n";
+                    json = json.substring(0, json.length() - 1).trim()
+                            + ",\n" + object + "\n]\n";
+
                 } else {
-                    throw new IOException("messages.json is not a valid JSON array.");
+                    throw new IOException(
+                            "messages.json is not a valid JSON array."
+                    );
                 }
             }
+
             Files.writeString(path, json, StandardCharsets.UTF_8);
+
         } catch (IOException exception) {
-            throw new IllegalStateException("Unable to store message as JSON.", exception);
+            throw new IllegalStateException(
+                    "Unable to store message as JSON.",
+                    exception
+            );
         }
     }
 
+    /** Escapes special characters for JSON storage. */
     private static String escapeJson(String value) {
         if (value == null) {
             return "";
         }
+
         return value.replace("\\", "\\\\")
                 .replace("\"", "\\\"")
                 .replace("\r", "\\r")
@@ -197,18 +253,33 @@ public class Message {
                 .replace("\t", "\\t");
     }
 
-    public String getMessageID() { return messageID; }
-    public int getMessageNumber() { return messageNumber; }
-    public String getRecipient() { return recipient; }
-    public String getMessage() { return message; }
-    public String getMessageHash() { return messageHash; }
-    public String getStatus() { return status; }
+    public String getMessageID() {
+        return messageID;
+    }
+
+    public int getMessageNumber() {
+        return messageNumber;
+    }
+
+    public String getRecipient() {
+        return recipient;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public String getMessageHash() {
+        return messageHash;
+    }
+
+    public String getStatus() {
+        return status;
+    }
 
     /** Clears in-memory sent-message state for tests/new application runs. */
     public static void resetMessages() {
         SENT_MESSAGES.clear();
         totalMessagesSent = 0;
     }
-
-
 }
