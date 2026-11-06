@@ -1,3 +1,4 @@
+
 import java.util.Scanner;
 
 /**
@@ -25,7 +26,8 @@ public class Main {
         System.out.println();
         System.out.println(login.registerUser());
 
-        if (!login.checkUserName() || !login.checkPasswordComplexity() || !login.checkCellPhoneNumber()) {
+        if (!login.checkUserName() || !login.checkPasswordComplexity()
+                || !login.checkCellPhoneNumber()) {
             System.out.println();
             System.out.println("Registration could not be completed. Please correct the information and try again.");
             scanner.close();
@@ -52,16 +54,24 @@ public class Main {
 
         System.out.print("How many messages would you like to enter? ");
         int numberOfMessages;
+
         try {
             numberOfMessages = Integer.parseInt(scanner.nextLine());
+
+            if (numberOfMessages < 0) {
+                System.out.println("Please enter a valid number of messages.");
+                scanner.close();
+                return;
+            }
+
         } catch (NumberFormatException exception) {
             System.out.println("Please enter a valid number of messages.");
             scanner.close();
             return;
         }
 
-        int messageNumber = 0;
-        while (messageNumber < numberOfMessages) {
+        for (int messageNumber = 0; messageNumber < numberOfMessages;) {
+
             System.out.println();
             System.out.println("1) Send Messages");
             System.out.println("2) Show recently sent messages");
@@ -70,8 +80,10 @@ public class Main {
             String option = scanner.nextLine();
 
             if (option.equals("1")) {
+
                 System.out.print("Enter recipient cell number: ");
                 String recipient = scanner.nextLine();
+
                 System.out.print("Enter message: ");
                 String text = scanner.nextLine();
 
@@ -84,20 +96,24 @@ public class Main {
 
                 String recipientResult = message.checkRecipientCell();
                 System.out.println(recipientResult);
+
                 String lengthResult = message.checkMessageLength();
                 System.out.println(lengthResult);
 
                 if (!recipientResult.equals("Recipient successfully captured.")) {
                     continue;
                 }
+
                 if (!lengthResult.equals("Message ready to send.")) {
                     System.out.println("Please enter a message of less than 250 characters.");
                     continue;
                 }
 
                 message.createMessageHash();
+
                 System.out.print("Choose Send, Disregard or Store: ");
                 String action = scanner.nextLine();
+
                 System.out.println(message.SentMessage(action));
 
                 if (action.equalsIgnoreCase("send")) {
@@ -110,12 +126,18 @@ public class Main {
                 }
 
                 messageNumber++;
+
             } else if (option.equals("2")) {
+
                 System.out.println("Coming Soon.");
+
             } else if (option.equals("3")) {
+
                 System.out.println("Goodbye.");
                 break;
+
             } else {
+
                 System.out.println("Invalid option. Please select 1, 2 or 3.");
             }
         }
