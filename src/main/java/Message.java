@@ -1,4 +1,10 @@
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -17,6 +23,10 @@ public class Message {
     private static final List<Message> SENT_MESSAGES = new ArrayList<>();
     private static int totalMessagesSent = 0;
     private static final String JSON_FILE = "messages.json";
+
+    private static final Gson GSON = new GsonBuilder()
+            .setPrettyPrinting()
+            .create();
 
     private String messageID;
     private int messageNumber;
@@ -51,6 +61,7 @@ public class Message {
                 1_000_000_000L,
                 10_000_000_000L
         );
+
         return String.valueOf(value);
     }
 
@@ -59,10 +70,7 @@ public class Message {
         return messageID != null && messageID.matches("\\d{10}");
     }
 
-    /**
-     * Ensures the recipient has an international code and no more than
-     * ten national-number digits.
-     */
+    /** Validates the recipient international number. */
     public String checkRecipientCell() {
         if (recipient == null || !recipient.matches("^\\+\\d{1,3}\\d{1,10}$")) {
             return "Recipient cell number is incorrectly formatted.";
@@ -104,15 +112,14 @@ public class Message {
             }
         }
 
-        messageHash = (idPart + ":" + messageNumber + ":"
-                + firstWord + lastWord).toUpperCase();
+        messageHash = (idPart + ":" + messageNumber
+                + ":" + firstWord + lastWord).toUpperCase();
 
         return messageHash;
     }
 
     /**
-     * Records the selected action.
-     * The returned strings follow the POE wording.
+     * Records the selected message action.
      */
     public String SentMessage(String choice) {
         if (choice == null) {
@@ -192,65 +199,58 @@ public class Message {
         return totalMessagesSent;
     }
 
-    /** Stores this message in a JSON array in messages.json. */
+    /**
+     * Stores this message in messages.json using Gson.
+     * Existing stored messages are preserved.
+     */
     public void storeMessage() {
         Path path = Paths.get(JSON_FILE);
 
-        String object = "  {\n"
-                + "    \"messageID\": \"" + escapeJson(messageID) + "\",\n"
-                + "    \"messageNumber\": " + messageNumber + ",\n"
-                + "    \"recipient\": \"" + escapeJson(recipient) + "\",\n"
-                + "    \"message\": \"" + escapeJson(message) + "\",\n"
-                + "    \"messageHash\": \"" + escapeJson(messageHash) + "\",\n"
-                + "    \"status\": \"" + escapeJson(status) + "\"\n"
-                + "  }";
-
         try {
-            String json;
+            JsonArray messages;
 
-            if (!Files.exists(path)
-                    || Files.readString(path, StandardCharsets.UTF_8).trim().isEmpty()) {
+            if (Files.exists(path)) {
+                String existingJson = Files.readString(
+                        path,
+                        StandardCharsets.UTF_8
+                ).trim();
 
-                json = "[\n" + object + "\n]\n";
+                if (existingJson.isEmpty()) {
+                    messages = new JsonArray();
+                } else {
+                    messages = JsonParser.parseString(existingJson)
+                            .getAsJsonArray();
+                }
 
             } else {
-                json = Files.readString(path, StandardCharsets.UTF_8).trim();
-
-                if (json.equals("[]")) {
-                    json = "[\n" + object + "\n]\n";
-
-                } else if (json.endsWith("]")) {
-                    json = json.substring(0, json.length() - 1).trim()
-                            + ",\n" + object + "\n]\n";
-
-                } else {
-                    throw new IOException(
-                            "messages.json is not a valid JSON array."
-                    );
-                }
+                messages = new JsonArray();
             }
 
-            Files.writeString(path, json, StandardCharsets.UTF_8);
+            JsonObject messageObject = new JsonObject();
 
-        } catch (IOException exception) {
+            messageObject.addProperty("messageID", messageID);
+            messageObject.addProperty("messageNumber", messageNumber);
+            messageObject.addProperty("recipient", recipient);
+            messageObject.addProperty("message", message);
+            messageObject.addProperty("messageHash", messageHash);
+            messageObject.addProperty("status", status);
+
+            messages.add(messageObject);
+
+            Files.writeString(
+                    path,
+                    GSON.toJson(messages),
+                    StandardCharsets.UTF_8
+            );
+
+        } catch (IOException | IllegalStateException
+                | com.google.gson.JsonParseException exception) {
+
             throw new IllegalStateException(
                     "Unable to store message as JSON.",
                     exception
             );
         }
-    }
-
-    /** Escapes special characters for JSON storage. */
-    private static String escapeJson(String value) {
-        if (value == null) {
-            return "";
-        }
-
-        return value.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\r", "\\r")
-                .replace("\n", "\\n")
-                .replace("\t", "\\t");
     }
 
     public String getMessageID() {
